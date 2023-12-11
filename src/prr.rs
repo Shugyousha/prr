@@ -50,6 +50,9 @@ struct PrrLocalConfig {
     repository: Option<String>,
     /// Local workdir override
     workdir: Option<String>,
+    /// If enabled, do not create `org/repo` directory structure in workdir.
+    /// This is only effective if above `workdir` in local config is set.
+    workdir_flatten: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -157,6 +160,15 @@ impl Prr {
         }
     }
 
+    /// Returns if workdir hierarchy should be flattened
+    fn workdir_flatten(&self) -> bool {
+        if let Some(lconfig) = &self.config.local {
+            lconfig.workdir_flatten
+        } else {
+            false
+        }
+    }
+
     /// Parses a PR string in the form of `danobi/prr/24` and returns
     /// a tuple ("danobi", "prr", 24) or an error if string is malformed.
     /// If the local repository config is defined, it just needs the PR number.
@@ -220,6 +232,7 @@ impl Prr {
 
         Review::new(
             &self.workdir()?,
+            self.workdir_flatten(),
             diff,
             owner,
             repo,
@@ -230,7 +243,7 @@ impl Prr {
     }
 
     pub async fn submit_pr(&self, owner: &str, repo: &str, pr_num: u64, debug: bool) -> Result<()> {
-        let review = Review::new_existing(&self.workdir()?, owner, repo, pr_num);
+        let review = Review::new_existing(&self.workdir()?, self.workdir_flatten(), owner, repo, pr_num);
         let (review_action, review_comment, inline_comments, file_comments) = review.comments()?;
         let metadata = review.get_metadata()?;
 
@@ -388,7 +401,7 @@ impl Prr {
     }
 
     pub fn apply_pr(&self, owner: &str, repo: &str, pr_num: u64) -> Result<()> {
-        let review = Review::new_existing(&self.workdir()?, owner, repo, pr_num);
+        let review = Review::new_existing(&self.workdir()?, self.workdir_flatten(), owner, repo, pr_num);
         let metadata = review
             .get_metadata()
             .context("Failed to get review metadata")?;

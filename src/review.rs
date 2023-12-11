@@ -15,6 +15,8 @@ use crate::parser::{Comment, FileComment, InlineComment, ReviewAction, ReviewPar
 pub struct Review {
     /// Path to workdir
     workdir: PathBuf,
+    /// Flatten workdir hierarchy to remove `${ORG}/${REPO}` parent directories
+    workdir_flatten: bool,
     /// Name of the owner of the repository
     owner: String,
     /// Name of the repository
@@ -127,6 +129,7 @@ impl Review {
     /// directory.
     pub fn new(
         workdir: &Path,
+        workdir_flatten: bool,
         diff: String,
         owner: &str,
         repo: &str,
@@ -136,6 +139,7 @@ impl Review {
     ) -> Result<Review> {
         let review = Review {
             workdir: workdir.to_owned(),
+            workdir_flatten,
             owner: owner.to_owned(),
             repo: repo.to_owned(),
             pr_num,
@@ -198,9 +202,10 @@ impl Review {
     ///
     /// Note we do not check that anything actually exists on disk because that is
     /// inherently racy. We'll handle ENOENT errors when we actually use any files.
-    pub fn new_existing(workdir: &Path, owner: &str, repo: &str, pr_num: u64) -> Review {
+    pub fn new_existing(workdir: &Path, workdir_flatten: bool, owner: &str, repo: &str, pr_num: u64) -> Review {
         Review {
             workdir: workdir.to_owned(),
+            workdir_flatten,
             owner: owner.to_owned(),
             repo: repo.to_owned(),
             pr_num,
@@ -362,8 +367,10 @@ impl Review {
     /// Returns path to user-facing review file
     pub fn path(&self) -> PathBuf {
         let mut p = self.workdir.clone();
-        p.push(&self.owner);
-        p.push(&self.repo);
+        if !self.workdir_flatten {
+            p.push(&self.owner);
+            p.push(&self.repo);
+        }
         p.push(format!("{}.prr", self.pr_num));
 
         p

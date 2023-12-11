@@ -178,6 +178,10 @@ sub-directories.
       For example, you may run `prr get 6` instead of `prr get danobi/prr/6`.
 * `local.workdir`: Local workdir override (optional)
     * See `prr.workdir`
+* `local.workdir_flatten`: Flatten local workdir (optional)
+    * For example, `${WORKDIR}/${ORG}/${REPO}/22.prr` becomes
+      `${WORKDIR}/22.prr`
+    * This config is only effective if a local workdir is provided
 
 This table may not be specified in both a local config file and the global
 config file.
