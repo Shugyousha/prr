@@ -176,6 +176,8 @@ sub-directories.
 * `local.repository`: A string in format of `${ORG}/${REPO}` (optional)
     * If specified, you may omit the `${ORG}/${REPO}` from PR string arguments.
       For example, you may run `prr get 6` instead of `prr get danobi/prr/6`.
+* `local.workdir`: Local workdir override (optional)
+    * See `prr.workdir`
 
 This table may not be specified in both a local config file and the global
 config file.

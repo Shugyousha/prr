@@ -1,9 +1,10 @@
-use lazy_static::lazy_static;
+use std::collections::VecDeque;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
 use git2::{ApplyLocation, Diff, Repository, StatusOptions};
+use lazy_static::lazy_static;
 use octocrab::Octocrab;
 use prettytable::{format, row, Table};
 use reqwest::StatusCode;
@@ -47,6 +48,8 @@ struct PrrConfig {
 struct PrrLocalConfig {
     /// Default url for this current project
     repository: Option<String>,
+    /// Local workdir override
+    workdir: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -126,16 +129,23 @@ impl Prr {
         })
     }
 
+    /// Returns path to prr workdir
     fn workdir(&self) -> Result<PathBuf> {
-        match &self.config.prr.workdir {
+        let mut candidates = VecDeque::from([&self.config.prr.workdir]);
+        if let Some(lcfg) = &self.config.local {
+            candidates.push_front(&lcfg.workdir);
+        }
+
+        match candidates.into_iter().flatten().next() {
             Some(d) => {
                 if d.starts_with('~') {
                     bail!("Workdir may not use '~' to denote home directory");
                 }
 
-                Ok(Path::new(d).to_path_buf())
+                return Ok(Path::new(d).to_path_buf());
             }
             None => {
+                // Default workdir
                 let xdg_dirs = xdg::BaseDirectories::with_prefix("prr")?;
                 Ok(xdg_dirs.get_data_home())
             }
