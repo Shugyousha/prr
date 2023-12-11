@@ -139,10 +139,15 @@ impl Prr {
         match candidates.into_iter().flatten().next() {
             Some(d) => {
                 if d.starts_with('~') {
-                    bail!("Workdir may not use '~' to denote home directory");
+                    bail!("Invalid workdir={d}: may not use '~'");
                 }
 
-                return Ok(Path::new(d).to_path_buf());
+                let p = Path::new(d).to_path_buf();
+                if !p.is_absolute() {
+                    bail!("Invalid workdir={d}: must be absolute path");
+                }
+
+                Ok(p)
             }
             None => {
                 // Default workdir
